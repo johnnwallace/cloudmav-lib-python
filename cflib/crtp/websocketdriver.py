@@ -23,6 +23,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 """ CRTP Websocket Driver """
+import os
 import logging
 import queue
 import re
@@ -30,7 +31,7 @@ import socket
 import struct
 import threading
 import ssl
-import websockets
+import websocket
 from urllib.parse import urlparse
 
 from .crtpdriver import CRTPDriver
@@ -54,11 +55,13 @@ class WebsocketDriver(CRTPDriver):
 
     def connect(self, uri, linkQualityCallback, linkErrorCallback):
         if not re.search('^ws://', uri) and not re.search('^wss://', uri):
-            raise WrongUriType('Not a WebSocket URI')
+            raise WrongUriType('Not a Websocket URI')
 
         self.in_queue = queue.Queue()
         
-        self.cpx = CPX(WebsocketTransport(uri, 'resources/certificates/cacert.pem'))
+        module_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        cert_path = os.path.join(module_path, 'resources', 'certificates', 'cacert.pem')
+        self.cpx = CPX(WebsocketTransport(uri, cert_path))
 
         self._thread = _CPXReceiveThread(self.cpx, self.in_queue,
                                          linkErrorCallback)

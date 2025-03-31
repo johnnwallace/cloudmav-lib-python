@@ -178,7 +178,7 @@ class WebsocketTransport(CPXTransport):
 
             sslopt = {'context': ssl_context}
 
-        # Create WebSocket connection with TLS if enabled
+        # Create Websocket connection with TLS if enabled
         self._ws = websocket.create_connection(
             self._url,
             sslopt=sslopt
