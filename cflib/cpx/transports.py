@@ -155,7 +155,7 @@ class UARTTransport(CPXTransport):
         return packet
 
 
-class WebSocketTransport(CPXTransport):
+class WebsocketTransport(CPXTransport):
     def __init__(self, url, ca_cert_path):
         print('CPX websocket transport')
         self._url = url
