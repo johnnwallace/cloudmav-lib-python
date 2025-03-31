@@ -1,5 +1,7 @@
 import socket
 import struct
+import ssl
+import websocket
 from threading import Lock
 
 from . import CPXPacket
@@ -152,6 +154,65 @@ class UARTTransport(CPXTransport):
 
         return packet
 
+
+class WebSocketTransport(CPXTransport):
+    def __init__(self, url, ca_cert_path):
+        print('CPX websocket transport')
+        self._url = url
+        self._ws = None
+        self._ca_cert_path = ca_cert_path
+
+        self.connect()
+
+    def connect(self):
+        print('Connecting to websocket on {}...'.format(self._url))
+
+        # Configure SSL for TLS
+        sslopt = {}
+        if self._url.startswith('wss://'):
+            ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+            ssl_context.check_hostname = False # For testing
+    
+            if self._ca_cert_path:
+                ssl_context.load_verify_locations(self._ca_cert_path)
+
+            sslopt = {'context': ssl_context}
+
+        # Create WebSocket connection with TLS if enabled
+        self._ws = websocket.create_connection(
+            self._url,
+            sslopt=sslopt
+        )
+        print('Connected')
+
+    def disconnect(self):
+        print('Closing transport')
+        if self._ws:
+            self._ws.close()
+        self._ws = None
+
+    def writePacket(self, packet):
+        data = bytearray(struct.pack('H', packet.length+2))
+        data += packet.wireData
+        self._ws.send_binary(data)
+
+    def readPacket(self):
+        data = self._ws.recv()
+
+        # Handle binary frame
+        if isinstance(data, bytes):
+            size = struct.unpack('H', data[:2])[0]
+            packet_data = data[2:2+size]
+            
+            packet = CPXPacket()
+            packet.wireData = packet_data
+            
+            return packet
+        
+        return None
+
+    def __del__(self):
+        print('Websocket transport is being destroyed!')
 
 class CRTPTransport(CPXTransport):
     def __init__(self):
